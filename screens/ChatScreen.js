@@ -7,19 +7,28 @@ import socketIOClient from "socket.io-client";
  
 import {connect} from 'react-redux';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // Pensez à changer l'adresse ci-dessous avec votre IP locale !
-var socket = socketIOClient("http://192.168.1.15:3000");
+var socket = socketIOClient("http://192.168.1.38:3000");
 
 function ChatScreen(props) {
   
   const [currentMessage, setCurrentMessage] = useState();
   const [listMessage, setListMessage] = useState([]);
+  const [userName, setUserName] = useState("");
+  
 
   useEffect(() => { 
     socket.on('sendMessageToAll', (newMessageData)=> {
       setListMessage([...listMessage, newMessageData]);
+    
+    AsyncStorage.getItem("userName", function(error, data) {
+      setUserName(data)
+ });
     });
   }, [listMessage]);
+
 
   var listMessageItem = listMessage.map((messageData, i)=>{
     
@@ -33,7 +42,7 @@ function ChatScreen(props) {
       <ListItem key={i}>
         <ListItem.Content>
           <ListItem.Title>{msg}</ListItem.Title>
-          <ListItem.Subtitle>{messageData.pseudo}</ListItem.Subtitle>
+          <ListItem.Subtitle>{userName}</ListItem.Subtitle>
         </ListItem.Content>
       </ListItem>
     );

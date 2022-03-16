@@ -7,10 +7,18 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import socketIOClient from "socket.io-client";
+
+
+var socket = socketIOClient("http://192.168.1.38:3000");
+
 export default function MapScreen() {
 
   const [currentLatitude, setCurrentLatitude] = useState(0);
   const [currentLongitude, setCurrentLongitude] = useState(0);
+  const [otherLatitude, setOtherLatitude] = useState(0);
+  const [otherLongitude, setOtherLongitude] = useState(0);
   const [addPOI, setAddPOI] = useState(false);
   const [listPOI, setListPOI] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -20,7 +28,10 @@ export default function MapScreen() {
 
   const [tempPOI, setTempPOI] = useState();
 
+  
+
   useEffect(() => {
+
     async function askPermissions() {
       let { status } = await Permissions.askAsync(Permissions.LOCATION);
       if (status === 'granted') {
@@ -28,11 +39,34 @@ export default function MapScreen() {
           (location) => {
             setCurrentLatitude(location.coords.latitude)
             setCurrentLongitude(location.coords.longitude);
+            socket.emit("sendPosition", {latitude: location.coords.latitude, longitude: location.coords.longitude} )
           }
         );
       }
     }
     askPermissions();
+  }, []);
+
+  
+  useEffect(() => { 
+    socket.on('sendPosition', (positionData)=> {
+      setOtherLatitude(positionData.latitude);
+      setOtherLongitude(positionData.longitude)
+
+ });
+
+  }, [setOtherLatitude]);
+
+  
+  useEffect(() => {
+
+    var initPOI = () => {
+      AsyncStorage.getItem("POI", function(error, data) {
+        if(data !== null){
+      setListPOI(JSON.parse(data));
+        } 
+     })}
+     initPOI()
   }, []);
 
   var selectPOI = (e) => {
@@ -49,6 +83,7 @@ export default function MapScreen() {
     setTempPOI();
     setDescPOI();
     setTitrePOI();
+    AsyncStorage.setItem("POI", JSON.stringify(listPOI))
   }
 
 
@@ -108,6 +143,13 @@ export default function MapScreen() {
           title="Hello"
           description="I'am here"
           coordinate={{ latitude: currentLatitude, longitude: currentLongitude }}
+        />
+
+        <Marker key={"otherPos"}
+          pinColor="green"
+          title="Jade"
+          description="I'am here"
+          coordinate={{ latitude: otherLatitude, longitude: otherLongitude }}
         />
         {markerPOI}
       </MapView>
